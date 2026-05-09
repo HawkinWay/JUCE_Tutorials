@@ -1,0 +1,10 @@
+cmake-build-debug/
+camke-build-release/
+build/
+*_artefacts/
+
+JUCE/
+
+.DS_Store
+.idea/
+.vscode/
