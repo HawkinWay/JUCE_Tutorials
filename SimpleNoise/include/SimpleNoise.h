@@ -63,6 +63,12 @@ public:
         }
     }
 #endif
+
+    // [0,1) -> [-1,1)
+    float randomNewRange() {
+        return _random.nextFloat() * 2.f - 1.f;
+    }
+
     void getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill) override {
 
         auto numSamplesRemaining = bufferToFill.numSamples;     // the number of samples in  the buffer that should be R/W
@@ -77,7 +83,7 @@ public:
             for (auto sample = 0; sample < numSamplesThisTime; sample++) {
                 
                 for (auto channel = 0; channel < bufferToFill.buffer->getNumChannels(); channel++) {
-                    bufferToFill.buffer->setSample(channel, sample, _random.nextFloat() * _currentLevel);            
+                    bufferToFill.buffer->setSample(channel, sample, randomNewRange() * _currentLevel);
                 }
                 _currentLevel += levelIncrement;
                 _samplesToTarget--;
@@ -96,7 +102,7 @@ public:
                 auto *buffer = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample + offset);
 
                 for (auto sample = 0; sample < numSamplesRemaining; ++sample)
-                    *buffer++ = _random.nextFloat() * _currentLevel;
+                    *buffer++ = randomNewRange() * _currentLevel;
             
             }
         }
