@@ -14,7 +14,7 @@ public:
             _samplesToTarget = _rampLengthSamples;
         };
 
-        _levelLabel.setText("Noise Level", juce::/*NotificationType::*/dontSendNotification);\
+        _levelLabel.setText("Noise Level", juce::/*NotificationType::*/dontSendNotification);
 
         addAndMakeVisible(_levelSlider);
         addAndMakeVisible(_levelLabel);
@@ -65,12 +65,14 @@ public:
 #endif
     void getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill) override {
 
-        auto numSamplesRemaining = bufferToFill.numSamples;
+        auto numSamplesRemaining = bufferToFill.numSamples;     // the number of samples in  the buffer that should be R/W
         auto offset = 0;
 
         if (_samplesToTarget > 0) {
             auto levelIncrement = (_targetLevel - _currentLevel) / static_cast<float>(_samplesToTarget);
-            auto numSamplesThisTime = juce::jmin(numSamplesRemaining, _samplesToTarget);          
+
+            // ramp length(_samplesToTarget) may longer than block size(numSamplesRemaining), may not
+            auto numSamplesThisTime = juce::jmin(numSamplesRemaining, _samplesToTarget);
             
             for (auto sample = 0; sample < numSamplesThisTime; sample++) {
                 
@@ -87,6 +89,7 @@ public:
                 _currentLevel = _targetLevel;       
         }
 
+        // if the block has not been processed completely, continue processing the remaining part
         if (numSamplesRemaining > 0) {
             
             for (auto channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel) {
@@ -97,7 +100,6 @@ public:
             
             }
         }
-
 
     }
 
@@ -119,10 +121,10 @@ private:
 
     float _currentLevel;
     float _targetLevel;
-    int _samplesToTarget;
+    int _samplesToTarget;       // the number of samples that need to be smoothed
 
     // Regardless of how many objects are created, they all share this _rampLengthSamples
-    // and its value is be determined in compile-time and can't be modified
+    // and its value is determined in compile-time and can't be modified
     static /*inline*/ constexpr auto _rampLengthSamples = 128;      // inline is implicit sine C++17
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleNoise)
