@@ -5,3 +5,4 @@ project(JuceTutorials VERSION 0.0.1)
 add_subdirectory(JUCE)
 
 add_subdirectory(SimpleNoise)
+add_subdirectory(SimpleNoisePan)
