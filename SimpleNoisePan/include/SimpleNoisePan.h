@@ -1,140 +1,101 @@
 #pragma once
 
+#include <ranges>
 #include <juce_audio_utils/juce_audio_utils.h>
 
 class SimpleNoisePan : public juce::AudioAppComponent {
 public:
-    SimpleNoisePan() : _targetLevel(0.125f) {
-        
-        _levelSlider.setRange(0.0, 0.25);
-        _levelSlider.setValue(_targetLevel, juce::/*NotificationType::*/dontSendNotification);
-        _levelSlider.setTextBoxStyle(juce::Slider::/*TextEntryBoxPosition::*/TextBoxRight, false, 100, 20);
-        _levelSlider.onValueChange = [this]() {
-            _targetLevel = static_cast<float>(_levelSlider.getValue());
-            _samplesToTarget = _rampLengthSamples;
-        };
+    SimpleNoisePan() {
+        l_Slider.setRange(0.0, 0.25);
+        l_Slider.setValue(0.125, juce::NotificationType::dontSendNotification);
+        l_Slider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxRight, false, 100, 20);
 
-        _levelLabel.setText("Noise Level", juce::/*NotificationType::*/dontSendNotification);
+        r_Slider.setRange(0.0, 0.25);
+        r_Slider.setValue(0.125, juce::NotificationType::dontSendNotification);
+        r_Slider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxRight, false, 100, 20);
 
-        addAndMakeVisible(_levelSlider);
-        addAndMakeVisible(_levelLabel);
+        l_Label.setText("L",juce::NotificationType::dontSendNotification);
+        r_Label.setText("R",juce::NotificationType::dontSendNotification);
+
+        addAndMakeVisible(l_Slider);
+        addAndMakeVisible(r_Slider);
+        addAndMakeVisible(l_Label);
+        addAndMakeVisible(r_Label);
 
         setSize(800, 600);
-        setAudioChannels(0,2);
+        setAudioChannels(0, 2);
     }
 
     ~SimpleNoisePan() {
         shutdownAudio();
     }
 
+    void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override {
+
+    }
+
+    void getNextAudioBlock(const AudioSourceChannelInfo &bufferToFill) override {
+
+        auto l_level = static_cast<float>(l_Slider.getValue());
+        auto r_level = static_cast<float>(r_Slider.getValue());
+
+
+        for (auto channel : std::views::iota(0, bufferToFill.buffer->getNumChannels())) {
+
+            auto* buffer = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
+
+            for (auto sample : std::views::iota(0, bufferToFill.numSamples)) {
+// bufferToFill.buffer->getNumSamples() is whole buffer capacity, bufferToFill.numSamples is the samples we need to process this time
+
+                if (channel == 0) {
+                    *buffer++ = getRandomValue() * l_level;
+                }else {
+                    *buffer++ = getRandomValue() * r_level;
+                }
+
+            }
+
+        }
 #if 0
-    void prepareToPlay (int samplePerBlockExpected, double sampleRate) override{
-        juce::String message;
-        message << "preparing to play audio...\n";
-        message << "sampleRate: " << sampleRate << "\n";
-        message << "samplesPerBlockExpected: " << samplePerBlockExpected << "\n";
-        juce::Logger::getCurrentLogger()->writeToLog(message);
-    }
-#endif
-
-    void prepareToPlay(int, double) override {
-        resetParameters();
-    }
-
-    void releaseResources() override {
-        juce::Logger::getCurrentLogger()->writeToLog("Releasing audio resources.");
-    }
-
-#if 0
-    void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override {
-
-        auto level = static_cast<float>(_levelSlider.getValue());
-
         for (auto channel = 0; channel < bufferToFill.buffer->getNumChannels(); channel++) {
 
-            auto *buffer = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
+            auto* buffer = bufferToFill.buffer->getWritePointer(channel);
 
             for (auto sample = 0; sample < bufferToFill.buffer->getNumSamples(); sample++) {
 
-                //buffer[sample] = _random.nextFloat() * 0.25f - 0.125f;
-                *buffer++ = _random.nextFloat() * level;
+                if (channel == 0) {
+                    *buffer++ = getRandomValue() * l_level;
+                }else {
+                    *buffer++ = getRandomValue() * r_level;
+                }
 
             }
         }
-    }
 #endif
+    }
 
-    // [0,1) -> [-1,1)
-    float randomNewRange() {
+    float getRandomValue() noexcept {
         return _random.nextFloat() * 2.f - 1.f;
     }
 
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill) override {
-
-        auto numSamplesRemaining = bufferToFill.numSamples;     // the number of samples in  the buffer that should be R/W
-        auto offset = 0;
-
-        if (_samplesToTarget > 0) {
-            auto levelIncrement = (_targetLevel - _currentLevel) / static_cast<float>(_samplesToTarget);
-
-            // ramp length(_samplesToTarget) may longer than block size(numSamplesRemaining), may not
-            auto numSamplesThisTime = juce::jmin(numSamplesRemaining, _samplesToTarget);
-            
-            for (auto sample = 0; sample < numSamplesThisTime; sample++) {
-                
-                for (auto channel = 0; channel < bufferToFill.buffer->getNumChannels(); channel++) {
-                    bufferToFill.buffer->setSample(channel, sample, randomNewRange() * _currentLevel);
-                }
-                _currentLevel += levelIncrement;
-                _samplesToTarget--;
-            }
-            
-            offset = numSamplesThisTime;
-            numSamplesRemaining -= numSamplesThisTime;
-            if (_samplesToTarget == 0)
-                _currentLevel = _targetLevel;       
-        }
-
-        // if the block has not been processed completely, continue processing the remaining part
-        if (numSamplesRemaining > 0) {
-            
-            for (auto channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel) {
-                auto *buffer = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample + offset);
-
-                for (auto sample = 0; sample < numSamplesRemaining; ++sample)
-                    *buffer++ = randomNewRange() * _currentLevel;
-            
-            }
-        }
+    void releaseResources() override {
 
     }
-
 
     void resized() override {
-        _levelSlider.setBounds(100, 10, getWidth() - 110, 20);
-        _levelLabel.setBounds(10, 10, 90, 20);
-    }
+        l_Slider.setBounds(100, 10, getWidth() - 110, 20);
+        l_Label.setBounds(10, 10, 90, 20);
 
-    void resetParameters() {
-        _currentLevel = _targetLevel;
-        _samplesToTarget = 0;
+        r_Slider.setBounds(100, 40, getWidth() - 110, 20);
+        r_Label.setBounds(10, 40, 90, 20);
     }
-
 private:
     juce::Random _random;
-    juce::Slider _levelSlider;
-    juce::Label _levelLabel;
 
-    float _currentLevel;
-    float _targetLevel;
-    int _samplesToTarget;       // the number of samples that need to be smoothed
+    juce::Slider l_Slider;
+    juce::Slider r_Slider;
+    juce::Label l_Label;
+    juce::Label r_Label;
 
-    // Regardless of how many objects are created, they all share this _rampLengthSamples
-    // and its value is determined in compile-time and can't be modified
-    static /*inline*/ constexpr auto _rampLengthSamples = 128;      // inline is implicit sine C++17
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleNoisePan)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleNoisePan);
 };
-
-
-

@@ -1,9 +1,9 @@
 #include <JuceHeader.h>
-#include "../include/SimpleNoise.h"
+#include "../include/SimpleNoisePan.h"
 
 class SimpleNoisePanApplication : public juce::JUCEApplication {
 public:
-    SimpleNoiseApplication() = default;
+    SimpleNoisePanApplication() = default;
 
     const String getApplicationName() override { return "SimpleNoisePan"; }
     const String getApplicationVersion() override{ return "1.0.0"; };
@@ -75,9 +75,9 @@ private:
         JUCEApplication& app;
 
         //==============================================================================
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleNoisePanApplicationWindow)
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleNoiseApplicationWindow)
     };
-    std::unique_ptr<SimpleNoisePanApplicationWindow> mainWindow;
+    std::unique_ptr<SimpleNoiseApplicationWindow> mainWindow;
 };
 
 START_JUCE_APPLICATION (SimpleNoisePanApplication)
