@@ -15,7 +15,7 @@ public:
     //==============================================================================
     Application() = default;
 
-    const juce::String getApplicationName() override       { return "WavefirnSynth"; }
+    const juce::String getApplicationName() override       { return "WaveformSynth"; }
     const juce::String getApplicationVersion() override    { return "1.0.0"; }
 
     void initialise (const juce::String&) override
