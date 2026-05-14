@@ -8,3 +8,4 @@ add_subdirectory(JUCE)
 
 add_subdirectory(SimpleNoise)
 add_subdirectory(SimpleNoisePan)
+add_subdirectory(WaveformSynth)
