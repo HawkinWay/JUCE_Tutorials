@@ -3,8 +3,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 
 class AudioPlayer : public juce::AudioAppComponent,
-                    public juce::ChangeListener,
-                    public juce::Timer
+                    public juce::ChangeListener
 {
 public:
     enum class TransportState{
@@ -40,8 +39,19 @@ public:
         setAudioChannels(0,2);
     }
 
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override{
+    ~AudioPlayer() override{
+        shutdownAudio();
+    }
 
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override{
+        if(source == &transportSource){
+            if(transportSource.isPlaying()){
+                changeState(TransportState::Playing);
+            }
+            else{
+                changeState(TransportState::Stopped);
+            }
+        }
     }
 
 
@@ -62,7 +72,9 @@ public:
     }
 
     void resized() override{
-
+        openButton.setBounds(10, 10, getWidth() - 20, 20);
+        playButton.setBounds(10, 40, getWidth() - 20, 20);
+        stopButton.setBounds(10, 70, getWidth() - 20, 20);
     }
 
 private:
@@ -93,7 +105,7 @@ private:
         chooser = std::make_unique<juce::FileChooser>(
                     "Select a file(wav, mp3) to play...",
                     juce::File {},
-                    "*.wave;*.mp3"
+                    "*.wav;*.mp3"
                 );
 
         auto chooserFlags = juce::FileBrowserComponent::openMode
