@@ -10,6 +10,8 @@ public:
         Stopped,
         Starting,
         Playing,
+        Pausing,
+        Paused,
         Stopping
     };
 
@@ -48,8 +50,11 @@ public:
             if(transportSource.isPlaying()){
                 changeState(TransportState::Playing);
             }
-            else{
+            else if((state == TransportState::Stopping) || (state == TransportState::Playing)){
                 changeState(TransportState::Stopped);
+            }
+            else if(TransportState::Pausing == state){
+                changeState(TransportState::Paused);
             }
         }
     }
@@ -83,16 +88,27 @@ private:
             state = newState;
             switch(state){
                 case TransportState::Stopped:
+                    playButton.setButtonText("Play");
+                    stopButton.setButtonText("Stop");
                     stopButton.setEnabled(false);
-                    playButton.setEnabled(true);
+                    // playButton.setEnabled(true);
                     transportSource.setPosition(0.0);
                     break;
                 case TransportState::Starting:
-                    playButton.setEnabled(false);
+                    // playButton.setEnabled(false);
                     transportSource.start();
                     break;
                 case TransportState::Playing:
+                    playButton.setButtonText("Pause");
+                    stopButton.setButtonText("Stop");
                     stopButton.setEnabled(true);
+                    break;
+                case TransportState::Pausing:
+                    transportSource.stop();
+                    break;
+                case TransportState::Paused:
+                    playButton.setButtonText("Resume");
+                    stopButton.setButtonText("Return to Zero");
                     break;
                 case TransportState::Stopping:
                     transportSource.stop();
@@ -127,11 +143,17 @@ private:
     }
 
     void playButtonClicked(){
-        changeState(TransportState::Starting);
+        if((state == TransportState::Stopped) || (state == TransportState::Paused))
+            changeState(TransportState::Starting);
+        else if(state == TransportState::Playing)
+            changeState(TransportState::Pausing);
     }
 
     void stopButtonClicked(){
-        changeState(TransportState::Stopping);
+        if(state == TransportState::Paused)
+            changeState(TransportState::Stopped);
+        else
+            changeState(TransportState::Stopping);
     }
 
     juce::TextButton openButton;
