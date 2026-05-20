@@ -34,11 +34,13 @@ public:
         forwardButton.setColour(juce::TextButton::buttonColourId, juce::Colours::gold);
         forwardButton.onClick = [this](){ forwardButtonClicked(); };
         forwardButton.setEnabled(false);
+        forwardButton.setRepeatSpeed(500,100);  // if keep click more than 500ms, repeat onclick() every 100ms
 
         rewindButton.setButtonText("<< 5s");
         rewindButton.setColour(juce::TextButton::buttonColourId, juce::Colours::blue);
         rewindButton.onClick = [this](){ rewindButtonClicked();};
         rewindButton.setEnabled(false);
+        rewindButton.setRepeatSpeed(500,100);
 
         progressBar.setRange(0.0, totalLength);
         progressBar.setValue(0.0);
@@ -215,13 +217,15 @@ private:
 
     void forwardButtonClicked(){
         auto currentPosition = transportSource.getCurrentPosition();
-        auto newPosition = juce::jmin(currentPosition + 5.0,totalLength);  // if position > totalLength, position = totalLength
+        auto possibleSeconds = forwardButton.isMouseButtonDown() ? 0.5 : 5.0;
+        auto newPosition = juce::jmin(currentPosition + possibleSeconds,totalLength);  // if position > totalLength, position = totalLength
         transportSource.setPosition(newPosition);
     }
 
     void rewindButtonClicked(){
         auto currentPosition = transportSource.getCurrentPosition();
-        auto newPosition = juce::jmax(0.0, currentPosition - 5.0);  // if position < 0.0, position = 0.0
+        auto possibleSeconds = rewindButton.isMouseButtonDown() ? 0.5 : 5.0;
+        auto newPosition = juce::jmax(0.0, currentPosition - possibleSeconds);  // if position < 0.0, position = 0.0
         transportSource.setPosition(newPosition);
     }
 
