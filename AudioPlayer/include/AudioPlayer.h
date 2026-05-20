@@ -42,6 +42,7 @@ public:
     }
 
     ~AudioPlayer() override{
+        transportSource.setSource(nullptr);
         shutdownAudio();
     }
 
@@ -136,7 +137,8 @@ private:
                                         auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
                                         transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
                                         playButton.setEnabled(true);
-                                        readerSource.reset(newSource.release());
+                                        // readerSource.reset(newSource.release());
+                                        readerSource = std::move(newSource);
                                     }
                                 }
                              });
