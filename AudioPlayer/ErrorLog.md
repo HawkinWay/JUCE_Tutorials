@@ -38,3 +38,44 @@ startTimerHz(30);   /* 1s / 30 = 33ms */
 called timeCallBack() approximately every 33ms
 
 we should call startTimerHz() and stopTimer() in changeState()
+
+### 4. Player bugs
+
+When we solved 2. , we sloved 1. So we can remove the changes in 1.
+
+1. when click stopButton, transportSource is 0.0, but processBar is not reseted to 0
+
+```C++
+void stopButtonClicked(){
+        if(state == TransportState::Paused)
+            changeState(TransportState::Stopped);
+        else
+            changeState(TransportState::Stopping);
+        progressBar.setValue(0.0);  // add this to solve
+}
+```
+
+2. when open new file, playButton is still "Resume" and stopButton is still "Return to zero", 
+and progressBar is not reseted to 0
+
+```C++
+void openButtonClicked(){
+        // add this to solve
+        if(state == TransportState::Paused){
+            changeState(TransportState::Stopped);
+        }
+        // ...
+}
+
+void changeState(TransportState newState){
+        if(state != newState){
+            state = newState;
+            switch(state){
+                case TransportState::Stopped:
+                    stopTimer();
+                    progressBar.setValue(0.0);  // add this to solve
+                    // ......
+            }
+        }
+}
+```
