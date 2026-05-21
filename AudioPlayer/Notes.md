@@ -32,3 +32,11 @@ enum class TransportState{
 Execution process(simplified version):
 
 ![player finite state machine](playerFSM.jpg)
+
+## changeListenerCallBack
+
+Timer  
+
+TransportSource  
+
+Thumbnail  

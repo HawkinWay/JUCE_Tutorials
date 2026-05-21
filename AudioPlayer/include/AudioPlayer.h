@@ -16,7 +16,10 @@ public:
         Stopping
     };
 
-    AudioPlayer() : state(TransportState::Stopped){
+    AudioPlayer() : state(TransportState::Stopped),
+                    thumbnailCache(5),
+                    thumbnail(512,formatManager,thumbnailCache)
+     {
         openButton.setButtonText("Open...");
         openButton.onClick = [this](){ openButtonClicked(); };
 
@@ -61,26 +64,28 @@ public:
 
         formatManager.registerBasicFormats();
         transportSource.addChangeListener(this);
+        thumbnail.addChangeListener(this);
 
-
-        setSize(300,200);
+        setSize(500,300);
         setAudioChannels(0,2);
+    }
+
+    ~AudioPlayer() override{
+        transportSource.setSource(nullptr);
+        shutdownAudio();
     }
 
     void timerCallback() override{
         if(transportSource.isPlaying()){
             auto currentPosition = transportSource.getCurrentPosition();
             progressBar.setValue(currentPosition, juce::dontSendNotification);
-            // transportSource.setPosition(currentPosition++);
+            // transportSource.setPosition(currentPosition++);      error
         }
+        repaint();
+//  error
 //        else if((state == TransportState::Stopping) || (state == TransportState::Pausing)){
 //            stopTimer();
 //        }
-    }
-
-    ~AudioPlayer() override{
-        transportSource.setSource(nullptr);
-        shutdownAudio();
     }
 
     void changeListenerCallback(juce::ChangeBroadcaster* source) override{
@@ -94,6 +99,9 @@ public:
             else if(TransportState::Pausing == state){
                 changeState(TransportState::Paused);
             }
+        }
+        if(source == &thumbnail){
+            repaint();
         }
     }
 
@@ -114,12 +122,23 @@ public:
         transportSource.releaseResources();
     }
 
+    void paint(juce::Graphics& g) override{
+        juce::Rectangle<int> thumbnailBounds(10, 160, getWidth() - 20, getHeight() - 170);
+        if(thumbnail.getNumChannels() == 0){
+            paintIfNoFileLoaded(g, thumbnailBounds);
+        }
+        else{
+            paintIfFileLoaded(g, thumbnailBounds);
+        }
+    }
+
     void resized() override{
         openButton.setBounds(10, 10, getWidth() - 20, 20);
         playButton.setBounds(10, 40, getWidth() - 20, 20);
         stopButton.setBounds(10, 70, getWidth() - 20, 20);
-        forwardButton.setBounds(160, 100, getWidth() / 2 - 20, 20);
         rewindButton.setBounds(10, 100, getWidth() / 2 - 20, 20);
+        const int rewindX = rewindButton.getWidth() + 30;
+        forwardButton.setBounds(rewindX , 100, getWidth() / 2 - 20, 20);
         progressBar.setBounds(10, 130, getWidth() - 20, 20);
     }
 
@@ -162,6 +181,35 @@ private:
         }
     }
 
+    void paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds){
+        g.setColour(juce::Colours::darkgrey);
+        g.fillRect(thumbnailBounds);
+        g.setColour(juce::Colours::white);
+        g.drawFittedText("No File Loaded...", thumbnailBounds, juce::Justification::centred, 1);
+    }
+
+    void paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds){
+        g.setColour(juce::Colours::darkgrey);
+        g.fillRect(thumbnailBounds);
+
+        g.setColour(juce::Colours::black);
+        auto audioLength =thumbnail.getTotalLength();
+        thumbnail.drawChannels(g,
+                               thumbnailBounds,
+                               0.0,
+                               thumbnail.getTotalLength(),
+                               1.f
+                               );
+
+        if(audioLength > 0.0) {
+            g.setColour(juce::Colours::red);
+            auto audioPosition = transportSource.getCurrentPosition();
+            auto drawPosition = (audioPosition / audioLength) * thumbnailBounds.getWidth() + thumbnailBounds.getX();
+            g.drawLine(static_cast<float>(drawPosition), static_cast<float>(thumbnailBounds.getY()),
+                       static_cast<float>(drawPosition), static_cast<float>(thumbnailBounds.getBottom()), 1.f);
+        }
+    }
+
     void openButtonClicked(){
         if(state == TransportState::Paused){
             changeState(TransportState::Stopped);
@@ -193,6 +241,8 @@ private:
                                         playButton.setEnabled(true);
                                         forwardButton.setEnabled(true);
                                         rewindButton.setEnabled(true);
+
+                                        thumbnail.setSource(new juce::FileInputSource(file));
                                         // readerSource.reset(newSource.release());
                                         readerSource = std::move(newSource);
                                     }
@@ -217,14 +267,14 @@ private:
 
     void forwardButtonClicked(){
         auto currentPosition = transportSource.getCurrentPosition();
-        auto possibleSeconds = forwardButton.isMouseButtonDown() ? 0.5 : 5.0;
+        auto possibleSeconds = forwardButton.isMouseButtonDown() ? 1.0 : 5.0;
         auto newPosition = juce::jmin(currentPosition + possibleSeconds,totalLength);  // if position > totalLength, position = totalLength
         transportSource.setPosition(newPosition);
     }
 
     void rewindButtonClicked(){
         auto currentPosition = transportSource.getCurrentPosition();
-        auto possibleSeconds = rewindButton.isMouseButtonDown() ? 0.5 : 5.0;
+        auto possibleSeconds = rewindButton.isMouseButtonDown() ? 1.0 : 5.0;
         auto newPosition = juce::jmax(0.0, currentPosition - possibleSeconds);  // if position < 0.0, position = 0.0
         transportSource.setPosition(newPosition);
     }
@@ -244,4 +294,7 @@ private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;    // have benefit of being exception-safe when AudioTransportSource::setSource()
     juce::AudioTransportSource transportSource;
+
+    juce::AudioThumbnailCache   thumbnailCache;
+    juce::AudioThumbnail    thumbnail;  // this obj will access thumbnailCache and formatManager, so we write this below them
 };
